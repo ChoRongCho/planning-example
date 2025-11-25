@@ -57,26 +57,37 @@ def load_path(path):
 
 
 def _draw_scene(ax, obstacles, start, goal, nodes=None, edges=None, path=None):
+    # 1) obstacles
     for poly in obstacles:
         xs = [p[0] for p in poly] + [poly[0][0]]
         ys = [p[1] for p in poly] + [poly[0][1]]
         ax.fill(xs, ys, alpha=0.3, edgecolor="black")
 
-    if nodes and edges:
+    # 2) roadmap edges
+    if edges:
         for e in edges:
-            u, v = e[0], e[1]
+            # e가 (u, v, w) 혹은 (u, v) 둘 중 하나일 수 있으니 방어적으로
+            if len(e) == 3:
+                u, v, _ = e
+            else:
+                u, v = e
             x1, y1 = nodes[u]
             x2, y2 = nodes[v]
             ax.plot([x1, x2], [y1, y2], linewidth=0.3)
+
+    # 3) roadmap nodes (엣지가 없어도 항상 찍기)
+    if nodes:
         xs = [p[0] for p in nodes.values()]
         ys = [p[1] for p in nodes.values()]
         ax.scatter(xs, ys, s=5)
 
+    # 4) path
     if path:
         px = [p[0] for p in path]
         py = [p[1] for p in path]
-        ax.plot(px, py, linewidth=2)
+        ax.plot(px, py, linewidth=2, color="red")
 
+    # 5) start / goal
     ax.scatter([start[0]], [start[1]], s=50, marker="o", label="start")
     ax.scatter([goal[0]], [goal[1]], s=50, marker="*", label="goal")
 

@@ -23,12 +23,14 @@ add_library(roadmap STATIC
     roadmap/visibility.cc
     roadmap/gvd.cc
     roadmap/rrt.cc
-    roadmap/sampling.cpp
+    roadmap/sampling.cc
+    thirdparty/jc_voronoi_impl.cc
 )
 
 target_include_directories(roadmap
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/roadmap
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
 )
 
 target_link_libraries(roadmap

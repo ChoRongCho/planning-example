@@ -110,9 +110,8 @@ int main(int argc, char** argv) {
             g = buildVisibilityGraph(env, log);
 
         } else if (roadmap_tp == "gvd") {
-            g = buildGVDLike(env, /*grid_res=*/40, /*band_min=*/0.3,
-                             /*band_max=*/1.5, /*connect_radius=*/2.0, log);
-
+            g = buildGVDVoronoi(env, log);
+            
         } else if (roadmap_tp == "rrt") {
             g = buildRRTGraph(env, /*max_iter=*/3000, /*step_size=*/0.5,
                               /*goal_threshold=*/0.5, /*goal_bias=*/0.05, log);
