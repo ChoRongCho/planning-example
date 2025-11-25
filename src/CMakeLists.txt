@@ -58,3 +58,21 @@ target_link_libraries(build_roadmap
         env
         roadmap
 )
+
+add_library(search
+    search/search.cc
+    # search/bfs.cc  search/gbfs.cc  search/astar.cc  필요하면 추가
+)
+
+target_include_directories(search PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+add_executable(build_path
+    search/build_path.cc
+)
+target_link_libraries(build_path
+    PRIVATE
+        search
+        roadmap
+        env
+)

@@ -56,16 +56,7 @@ def main():
         )
 
     if not args.no_vis:
-        visualize(
-            stage=stage,
-            env_path=env_file,
-            graph_path=graph_file,
-            path_path=path_file,
-            save=args.save,
-            roadmap=args.roadmap,
-            search=args.search_method,
-        )
-
+        visualize(args)
 
 if __name__ == "__main__":
     main()

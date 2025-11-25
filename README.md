@@ -1,15 +1,20 @@
-````markdown
-# README.md
+# Roadmap-based Planning
 
-## Planning Example Project
+## Introduction
 
-This project provides a modular pipeline for generating 2D planning environments, building roadmaps, running search algorithms, and visualizing the results.  
-All components are isolated for clarity and reproducibility:
+This project provides a modular pipeline for generating 2D planning environments, building roadmaps, running search algorithms, and visualizing the results. All components are isolated:
 
 * **C++** handles environment generation, roadmap construction, and path search.
 * **Python** orchestrates these modules via `main.py` and visualizes outputs.
 
----
+
+
+
+![map_prm_random](example_results/re-251125-1859/map_prm_random.gif)
+
+![map_prm_random_wastar](example_results/re-251125-1859/map_prm_random_wastar.gif)
+
+
 
 ## 1. Installation
 
@@ -22,18 +27,36 @@ cd planning-example
 pip install -r requirements.txt
 ````
 
-> Python is only used for orchestration and visualization.
-> All planning modules are written in C++ and built through CMake.
+The C++ modules require:
 
----
+| Component | Minimum Version | Tested Version |
+|----------|-----------------|----------------|
+| **CMake** | ≥ 3.16 | 3.30.0 |
+| **GCC / G++** | ≥ 9.0 (C++17 required) | 12.3.0 |
+| **GNU Make** | ≥ 4.0 | 4.3 |
+| **glibc** | ≥ 2.28 | 2.35 |
+
+CMake automatically configures the build using the system toolchain.  
+This project requires a compiler supporting **C++17** or later.
+
+To check your versions:
+
+```bash
+cmake --version
+gcc --version
+g++ --version
+make --version
+ldd --version
+```
+
 
 ## 2. Build Instructions
 
 The project provides a build helper:
 
 ```bash
+chmod +x build.py
 ./build.py         # Configure + build (default: Release)
-./build.py --debug # Build in Debug mode
 ./build.py --clean # Remove build directory
 ```
 
@@ -43,42 +66,79 @@ After building, all binaries appear in:
 build/bin/
     ├── build_env
     ├── build_roadmap
-    └── build_path        (future)
+    └── build_path
 ```
 
-Currently, `build_env` and `build_roadmap` are implemented.
 
----
+## 🚀 Quick Usage
 
-## 3. build_env: Role and Specifications
-
-`build_env` is responsible for generating a **random 2D continuous environment** with polygonal obstacles and saving it to:
-
-```text
-results/env.txt
-```
-
-### Usage
+Running the entire pipeline is extremely simple.
+If you execute the following command with **no arguments**:
 
 ```bash
-./build/bin/build_env <num_obstacles> [seed]
+python main.py
 ```
 
-* `<num_obstacles>` : requested number of obstacles
-* `[seed]` (optional) : fixed seed for reproducible environments
-* If seed is omitted, a random device generates one
-* The actual seed is always written to `env.txt` as a comment header
+the system automatically performs **all three stages**:
 
-Python wrapper:
+1. **Environment Generation**
+
+   * Creates a random 2D environment
+   * Saves it as `results/env.txt`
+   * Start and goal positions are automatically validated to be collision-free.
+
+2. **Roadmap Construction**
+
+   * Default roadmap algorithm: **`prm_random`**
+   * Saves the graph to `results/graph.txt`
+   * Uses deterministic seeding based on the environment seed + roadmap type.
+
+3. **Path Search**
+
+   * Default search algorithm: **`astar`**
+   * Computes a path from start to goal on the roadmap
+   * Saves the path to `results/path.txt`
+
+4. **Visualization Output**
+   
+   Results are saved inside a timestamped folder. It may take a few minutes depending on the roadmap size and visualization steps.
+
+   ```
+   results/re-YYMMDD-HHMM/
+       map_prm_random.png
+       map_prm_random.gif                 # roadmap construction (STEP-based)
+       map_prm_random_astar.png
+       map_prm_random_astar.gif           # path-drawing animation
+   ```
+
+In short, it automatically executes:
+
+✔ environment →
+✔ roadmap →
+✔ search →
+✔ PNG export →
+✔ GIF export
+
+with no additional configuration required.
+
+
+### Running individual stages
 
 ```bash
-python main.py --env
-python main.py --env --num_obstacles 12 --seed 123
+python main.py --env --seed 42
+python main.py --map --roadmap rrt --seed 42
+python main.py --search --roadmap gvd --search_method wastar --seed 42
 ```
 
----
+Each mode corresponds to:
 
-## Environment Specification (Implemented Constraints)
+* `--env` → Stage 1
+* `--map` → Stage1 and Stage 2
+* `--search` → Stage1, Stage 2 and Stage 3 (full pipeline)
+
+
+## 2-1. build_env: Role and Specifications
+`build_env` is responsible for generating a **random 2D continuous environment** with polygonal obstacles and saving it to `results/env.txt`.
 
 ### World
 
@@ -126,41 +186,8 @@ x y
 
 This file is later consumed by roadmap and search modules.
 
----
-
-## 4. build_roadmap: Role and Specifications
-
-`build_roadmap` takes an environment (`env.txt`) and constructs a **roadmap graph** according to a chosen method, writing it to:
-
-```text
-results/graph.txt
-```
-
-### Usage
-
-```bash
-./build/bin/build_roadmap <env_file> <roadmap_type> <out_graph_file>
-```
-
-* `<env_file>` : environment file generated by `build_env` (e.g., `results/env.txt`)
-
-* `<roadmap_type>` : one of
-
-  * `prm_random`  – PRM with uniform random sampling
-  * `prm_halton`  – PRM with Halton low-discrepancy sampling
-  * `prm_sobol`   – PRM with Sobol-like low-discrepancy sampling
-  * `visibility`  – visibility graph over obstacle vertices
-  * `gvd`         – grid-based skeleton (GVD-like) near obstacles
-  * `rrt`         – incremental RRT tree viewed as a roadmap
-
-* `<out_graph_file>` : output graph file (e.g., `results/graph.txt`)
-
-For PRM, GVD, and RRT, the internal RNG is seeded using:
-
-* **Environment seed** (from `env.txt`)
-* Plus a hash of `<roadmap_type>`
-
-so the roadmap becomes deterministic for a fixed env + type.
+## 2-2. build_roadmap: Role and Specifications
+`build_roadmap` takes an environment (`env.txt`) and constructs a **roadmap graph** according to a chosen method, writing it to `results/graph.txt`.
 
 ### Output Format (`graph.txt`)
 
@@ -179,22 +206,32 @@ so the roadmap becomes deterministic for a fixed env + type.
 * By convention, node `0` is the start configuration, node `1` is the goal.
 * Edges are stored as directed pairs; undirected edges appear as two directed entries.
 
-Python wrapper:
-
-```bash
-python main.py --map --roadmap prm_random
-python main.py --map --roadmap rrt --num_obstacles 10 --seed 42
-```
-
 This runs:
 
 1. `build_env` to create `env.txt`
 2. `build_roadmap` with the selected `<roadmap_type>` to create `graph.txt`
 3. Visualization (PNG + GIF) if saving is enabled.
 
----
 
-## 5. Running From Python and Visualization
+## 2-3. build_path: Role and Specifications
+`build_path` consumes the roadmap (`graph.txt`) and runs a selected search algorithm to compute a **collision-free path** from start (node 0) to goal (node 1).  
+The result is written to `results/path.txt`.
+
+
+### Output Format (`path.txt`)
+
+```
+<K>                 # number of points in the polyline
+x0 y0
+x1 y1
+...
+xK-1 yK-1
+```
+
+This file is consumed by the Python visualizer to draw the final solution trajectory.
+
+
+## 3. Running From Python and Visualization
 
 Environment-only:
 
@@ -220,3 +257,20 @@ results/re-YYMMDD-HHMM/
 
 * PNG: final snapshot of the environment + roadmap (+ path at stage 3).
 * GIF: simple time-lapse of roadmap construction based on logged node/edge order.
+
+
+
+
+### Stage definition
+
+| Stage | Description |
+|------:|-------------|
+| **1** | Environment only (obstacles, start, goal) |
+| **2** | Roadmap graph added (PRM / Visibility / RRT / GVD) |
+| **3** | Final search path added (A*, WA*, BFS, GBFS, …) |
+
+Both PNG and GIF are generated automatically when `--save` is provided.
+
+
+
+

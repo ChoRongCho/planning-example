@@ -1,66 +1,124 @@
-#include "environment.h"
-#include "search.h"   // A*, BFS, GBFS 등 공통 인터페이스
+// /src/search/build_path.cc
+#include <chrono>
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <vector>
 
-int main(int argc, char** argv) {
+#include "env/environment.h"   // start/goal 좌표 정의용 (0,1번 노드지만 타입 맞추려고)
+#include "roadmap/graph.h"
+#include "search/search.h"
+
+using namespace std;
+
+// graph.txt 로부터 Graph 읽기
+static void loadGraphFromFile(const std::string &filename, Graph &g) {
+    ifstream ifs(filename);
+    if (!ifs) {
+        throw runtime_error("Cannot open graph file: " + filename);
+    }
+
+    int N;
+    ifs >> N;
+    g.nodes.clear();
+    g.edges.clear();
+    g.nodes.reserve(N);
+
+    for (int i = 0; i < N; ++i) {
+        int id;
+        double x, y;
+        ifs >> id >> x >> y;
+        Vec2 p(x, y);
+        g.nodes.push_back({id, p});
+    }
+
+    int M;
+    ifs >> M;
+    g.edges.reserve(M);
+    for (int i = 0; i < M; ++i) {
+        int u, v;
+        double w;
+        ifs >> u >> v >> w;
+        g.edges.push_back({u, v, w});
+    }
+}
+
+// path.txt 로 저장
+static void savePathToFile(const std::string &filename,
+                           const Graph &g,
+                           const std::vector<int> &path_ids)
+{
+    ofstream ofs(filename);
+    if (!ofs) {
+        throw runtime_error("Cannot open path file for writing: " + filename);
+    }
+    ofs << path_ids.size() << "\n";
+    for (int id : path_ids) {
+        const Vec2 &p = g.nodes[id].p;
+        ofs << p.x << " " << p.y << "\n";
+    }
+}
+
+int main(int argc, char **argv) {
     if (argc < 5) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <env_file> <graph_file> <search_type> <out_path_file>\n";
+        cerr << "Usage: " << argv[0]
+             << " <env_file> <graph_file> <search_type> <out_path_file>\n";
+        cerr << " search_type: bfs | dfs | gbfs | astar | wastar\n";
         return 1;
     }
-    std::string env_file   = argv[1];
+
+    std::string env_file   = argv[1]; // 현재는 직접 쓰지는 않지만, 인터페이스 용으로 유지
     std::string graph_file = argv[2];
-    std::string search_tp  = argv[3];
+    std::string search_str = argv[3];
     std::string out_file   = argv[4];
 
-    // start/goal만 env에서 읽기
-    std::ifstream ifs(env_file);
-    if (!ifs) { std::cerr << "Cannot open env_file\n"; return 1; }
-
-    unsigned int dummy_seed;
-    int M;
-    std::string hash;
-    ifs >> hash >> hash >> dummy_seed;
-    ifs >> M;
-    for (int i=0; i<M; ++i) {
-        int k; ifs >> k;
-        double x,y;
-        for (int j=0; j<k; ++j) ifs >> x >> y;
-    }
-    Environment env;
-    ifs >> env.start.x >> env.start.y;
-    ifs >> env.goal.x  >> env.goal.y;
-
-    // graph 로드
     Graph g;
-    std::ifstream gfs(graph_file);
-    if (!gfs) { std::cerr << "Cannot open graph_file\n"; return 1; }
-
-    int N; gfs >> N;
-    g.nodes.resize(N);
-    for (int i=0; i<N; ++i) {
-        int id; double x,y;
-        gfs >> id >> x >> y;
-        g.nodes[id].id = id;
-        g.nodes[id].p  = Vec2(x,y);
+    try {
+        loadGraphFromFile(graph_file, g);
+    } catch (const std::exception &e) {
+        cerr << "[build_path] Error loading graph: " << e.what() << "\n";
+        return 1;
     }
-    int E; gfs >> E;
-    g.edges.resize(E);
-    for (int i=0; i<E; ++i)
-        gfs >> g.edges[i].u >> g.edges[i].v >> g.edges[i].w;
 
-    // start/goal node 찾기 (0/1로 고정해도 되고, 좌표 match해도 됨)
-    int start_id = 0;
+    if (g.nodes.size() < 2) {
+        cerr << "[build_path] Graph has fewer than 2 nodes\n";
+        return 1;
+    }
+
+    int start_id = 0; // build_roadmap에서 항상 start=0, goal=1 로 생성했다고 가정
     int goal_id  = 1;
 
-    auto algo = parseSearchType(search_tp);  // enum 리턴한다고 가정
-    auto path = runSearch(g, start_id, goal_id, algo);
+    SearchType type;
+    try {
+        type = parse_search_type(search_str);
+    } catch (const std::exception &e) {
+        cerr << "[build_path] " << e.what() << "\n";
+        return 1;
+    }
 
-    std::ofstream ofs(out_file);
-    ofs << path.size() << "\n";
-    for (int idx : path)
-        ofs << g.nodes[idx].p.x << " " << g.nodes[idx].p.y << "\n";
+    std::vector<int> path_ids;
+    auto t0 = std::chrono::steady_clock::now();
+    bool ok = run_search(g, start_id, goal_id, type, path_ids);
+    auto t1 = std::chrono::steady_clock::now();
+    double elapsed =
+        std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0)
+            .count();
+
+    if (!ok) {
+        cerr << "[build_path] No path found by " << search_str << "\n";
+        return 1;
+    }
+
+    cout << "[build_path] search=" << search_str
+         << " | path_len=" << path_ids.size()
+         << " | time=" << elapsed << " s\n";
+
+    try {
+        savePathToFile(out_file, g, path_ids);
+    } catch (const std::exception &e) {
+        cerr << "[build_path] Error saving path: " << e.what() << "\n";
+        return 1;
+    }
 
     return 0;
 }

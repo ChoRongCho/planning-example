@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument( "--roadmap", type=str, default="prm_random", 
                         choices=["prm_random", "prm_halton", "prm_sobol", "visibility", "gvd", "rrt"], help="Roadmap algorithm")
     parser.add_argument( "--search_method", type=str, default="astar", 
-                        choices=["bfs", "dfs", "gbfs", "astar"], help="Path finding algorithm")
+                        choices=["bfs", "dfs", "gbfs", "astar", "wastar"], help="Path finding algorithm")
     
     parser.add_argument( "--no_vis", action="store_true", help="No visualize")
     parser.add_argument("--save", action="store_false", default=True, help="Save PNG and GIF")
