@@ -24,7 +24,7 @@ def main():
     graph_file = RESULTS / "graph.txt"
     path_file = RESULTS / "path.txt"
 
-    # 1단계: env 생성 (C++ build_env는 인자로 장애물 개수 M만 받는다고 가정)
+    # Stage 1: Environment generation
     if stage >= 1:
         cmd = [os.path.join(BIN, "build_env"), str(args.num_obstacles)]
         if args.seed is not None:
@@ -32,7 +32,7 @@ def main():
             
         run_cmd(cmd, cwd=RESULTS)
 
-    # 2단계: roadmap 생성
+    # Stage 2: Roadmap generation
     if stage >= 2:
         run_cmd(
             [
@@ -43,7 +43,7 @@ def main():
             ]
         )
 
-    # 3단계: path 생성
+    # Stage 3: Path search
     if stage >= 3:
         run_cmd(
             [
