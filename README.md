@@ -274,3 +274,8 @@ Both PNG and GIF are generated automatically when `--save` is provided.
 
 
 
+## 📬 Contact
+
+If you encounter any issues, bugs, or have feature requests, please feel free to open an issue on GitHub.
+
+Email: cmp9877@gmail.com
