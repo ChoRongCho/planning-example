@@ -61,7 +61,9 @@ def main():
             env_path=env_file,
             graph_path=graph_file,
             path_path=path_file,
-            save=args.save, 
+            save=args.save,
+            roadmap=args.roadmap,
+            search=args.search_method,
         )
 
 
