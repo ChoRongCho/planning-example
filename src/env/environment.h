@@ -1,3 +1,4 @@
+// /home/changmin/PyProject/planning-example/src/env/environment.h
 #pragma once
 #include <vector>
 #include "obstacle.h"
@@ -12,9 +13,9 @@ public:
 
     std::vector<Obstacle> obstacles;
 
-    Environment() {}
-    explicit Environment(unsigned int seed);
+    Environment() = default;
 
+    // M개의 obstacle을 생성 (M은 1~20으로 clamp)
     void generateRandom(int M);
 
     bool isFree(const Vec2& p) const;

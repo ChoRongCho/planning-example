@@ -1,5 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
+from PIL import Image
+
 
 def load_env(path):
     path = Path(path)
@@ -18,6 +20,8 @@ def load_env(path):
         gx, gy = map(float, f.readline().split())
     return obstacles, (sx, sy), (gx, gy)
 
+
+
 def load_graph(path):
     path = Path(path)
     if not path.exists():
@@ -35,6 +39,8 @@ def load_graph(path):
             edges.append((int(u), int(v), float(w)))
     return nodes, edges
 
+
+
 def load_path(path):
     path = Path(path)
     if not path.exists():
@@ -44,9 +50,11 @@ def load_path(path):
         pts = [tuple(map(float, f.readline().split())) for _ in range(n)]
     return pts
 
-def visualize(stage, env_path, graph_path=None, path_path=None):
+
+
+def visualize(stage, env_path, graph_path=None, path_path=None, save=False):
     obstacles, start, goal = load_env(env_path)
-    nodes, edges = ({} ,[])
+    nodes, edges = ({}, [])
     path = []
 
     if stage >= 2 and graph_path is not None:
@@ -61,7 +69,7 @@ def visualize(stage, env_path, graph_path=None, path_path=None):
     for poly in obstacles:
         xs = [p[0] for p in poly] + [poly[0][0]]
         ys = [p[1] for p in poly] + [poly[0][1]]
-        ax.fill(xs, ys, alpha=0.3)
+        ax.fill(xs, ys, alpha=0.3, edgecolor="black")
 
     # 2) roadmap (if stage >= 2)
     if stage >= 2 and nodes:
@@ -80,12 +88,34 @@ def visualize(stage, env_path, graph_path=None, path_path=None):
         ax.plot(px, py, linewidth=2)
 
     # start / goal
-    ax.scatter([start[0]], [start[1]], s=50, marker='o', label="start")
-    ax.scatter([goal[0]], [goal[1]], s=50, marker='*', label="goal")
+    ax.scatter([start[0]], [start[1]], s=50, marker="o", label="start")
+    ax.scatter([goal[0]], [goal[1]], s=50, marker="*", label="goal")
 
     ax.set_xlim(0, 20)
     ax.set_ylim(0, 20)
-    ax.set_aspect('equal', 'box')
+    ax.set_aspect("equal", "box")
     ax.set_title(f"Stage {stage}")
     ax.legend()
+
+    # 저장 옵션
+    if save:
+        out_dir = Path(env_path).parent
+        base = out_dir / f"stage{stage}"
+        png_path = base.with_suffix(".png")
+        gif_path = base.with_suffix(".gif")
+
+        fig.savefig(png_path, dpi=150)
+        print(f"[visualize] Saved PNG: {png_path}")
+
+        if Image is not None:
+            try:
+                img = Image.open(png_path)
+                # 단일 프레임 GIF (나중에 multi-frame로 확장 가능)
+                img.save(gif_path, save_all=True, append_images=[img], duration=500, loop=0)
+                print(f"[visualize] Saved GIF: {gif_path}")
+            except Exception as e:
+                print(f"[visualize] Failed to save GIF: {e}")
+        else:
+            print("[visualize] PIL not available, GIF not saved.")
+
     plt.show()

@@ -1,9 +1,13 @@
+// /home/changmin/PyProject/planning-example/src/env/obstacle.cc
 #include "obstacle.h"
 #include <cmath>
 #include <algorithm>
 
-static double cross(const Vec2 &a, const Vec2 &b, const Vec2 &c) {
-    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
+namespace {
+    double cross(const Vec2 &a, const Vec2 &b, const Vec2 &c) {
+        // (b - a) x (c - a)
+        return (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x);
+    }
 }
 
 bool Obstacle::onSegment(const Vec2& a, const Vec2& b, const Vec2& p) const {
@@ -36,9 +40,10 @@ bool Obstacle::segmentsIntersect(const Vec2& p1, const Vec2& p2,
 }
 
 bool Obstacle::contains(const Vec2& p) const {
+    // ray casting
     bool inside = false;
-    int n = pts.size();
-    for (int i=0,j=n-1; i<n; j=i++) {
+    int n = static_cast<int>(pts.size());
+    for (int i = 0, j = n - 1; i < n; j = i++) {
         const Vec2 &a = pts[j];
         const Vec2 &b = pts[i];
         bool intersect = ((a.y > p.y) != (b.y > p.y)) &&
@@ -49,11 +54,12 @@ bool Obstacle::contains(const Vec2& p) const {
 }
 
 bool Obstacle::intersectsSegment(const Vec2& a, const Vec2& b) const {
-    int n = pts.size();
-    for (int i=0; i<n; i++) {
+    int n = static_cast<int>(pts.size());
+    for (int i = 0; i < n; ++i) {
         const Vec2& c = pts[i];
-        const Vec2& d = pts[(i+1)%n];
-        if (segmentsIntersect(a,b,c,d)) return true;
+        const Vec2& d = pts[(i + 1) % n];
+        if (segmentsIntersect(a,b,c,d))
+            return true;
     }
     return false;
 }
